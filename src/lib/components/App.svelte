@@ -2,9 +2,19 @@
   import { Canvas } from '@threlte/core'
   import Scene from './Scene.svelte'
 	import { World } from '@threlte/rapier';
+	import { Sky } from '@threlte/extras';
 </script>
 
 <Canvas>
+  <Sky
+    setEnvironment
+    turbidity={10}
+    rayleigh={3}
+    azimuth={180}
+    elevation={0.5}
+    mieCoefficient={0.005}
+    mieDirectionalG={0.7}
+  />
   <World gravity={[0, 0, 0]}>
     <Scene />
   </World>
