@@ -12,8 +12,21 @@
 		Capsule,
 		Cylinder,
 	} from "@dimforge/rapier3d-compat";
-	import { BoxGeometry, CapsuleGeometry, CylinderGeometry, MeshBasicMaterial, Quaternion, SphereGeometry, Vector3 } from "three";
-	import { globalState, physicsActive, resetRotation, type KeyedItem } from "$lib/stores";
+	import {
+		BoxGeometry,
+		CapsuleGeometry,
+		CylinderGeometry,
+		MeshBasicMaterial,
+		Quaternion,
+		SphereGeometry,
+		Vector3,
+	} from "three";
+	import {
+		globalState,
+		physicsActive,
+		resetRotation,
+		type KeyedItem,
+	} from "$lib/stores";
 	import { createEventDispatcher, onDestroy, onMount } from "svelte";
 	import {
 		Pane,
@@ -100,19 +113,34 @@
 	onMount(() => {
 		// if (!group) alert("go fuck yourself");
 		group?.position.set(positionX, positionY, positionZ);
-		group?.quaternion.set(exportedRotation[0], exportedRotation[1], exportedRotation[2], exportedRotation[3]);
+		group?.quaternion.set(
+			exportedRotation[0],
+			exportedRotation[1],
+			exportedRotation[2],
+			exportedRotation[3],
+		);
 		// group?.position.set(exportedPosition.x, exportedPosition.y, exportedPosition.z);
 		// group?.quaternion.set(exportedRotation.x, exportedRotation.y, exportedRotation.z, exportedRotation.w);
 		// console.log("group", group?.position, group?.quaternion);
 		// position = new Vector3(exportedPosition.x, exportedPosition.y, exportedPosition.z);
 		// rotation = new Quaternion(exportedRotation.x, exportedRotation.y, exportedRotation.z, exportedRotation.w);
 		positionInput = [positionX, positionY, positionZ];
-		rotationInput = [exportedRotation[0], exportedRotation[1], exportedRotation[2], exportedRotation[3]];
+		rotationInput = [
+			exportedRotation[0],
+			exportedRotation[1],
+			exportedRotation[2],
+			exportedRotation[3],
+		];
 		mounted = true;
 	});
 
 	let positionInput: PointValue3d = [position.x, position.y, position.z];
-	let rotationInput: PointValue4d = [exportedRotation[0], exportedRotation[1], exportedRotation[2], exportedRotation[3]];
+	let rotationInput: PointValue4d = [
+		exportedRotation[0],
+		exportedRotation[1],
+		exportedRotation[2],
+		exportedRotation[3],
+	];
 	export let initialLinvel: PointValue3d;
 
 	export let time: number;
@@ -138,7 +166,12 @@
 			}
 			if (!rotation.equals(rot)) {
 				rotation = rot;
-				rotationInput = [rotation.x, rotation.y, rotation.z, rotation.w];
+				rotationInput = [
+					rotation.x,
+					rotation.y,
+					rotation.z,
+					rotation.w,
+				];
 				group.quaternion.set(rot.x, rot.y, rot.z, rot.w);
 			}
 		} else {
@@ -150,7 +183,12 @@
 			if (!rotation.equals(group.quaternion)) {
 				rotation = group.quaternion.clone();
 				rigidBody.setRotation(rotation, false);
-				rotationInput = [rotation.x, rotation.y, rotation.z, rotation.w];
+				rotationInput = [
+					rotation.x,
+					rotation.y,
+					rotation.z,
+					rotation.w,
+				];
 			}
 		}
 	});
@@ -192,7 +230,7 @@
 					y: (initialLinvel as number[])[1],
 					z: (initialLinvel as number[])[2],
 				},
-				true
+				true,
 			);
 			rigidBody.setAngvel({ x: 0, y: 0, z: 0 }, false);
 		} else {
@@ -221,7 +259,11 @@
 
 	let colliderArgs = [1 / 2, 1 / 2, 1 / 2] as any;
 
-	let geometry: THREE.BoxGeometry | THREE.CapsuleGeometry | THREE.SphereGeometry | THREE.CylinderGeometry = new BoxGeometry(1, 1, 1);
+	let geometry:
+		| THREE.BoxGeometry
+		| THREE.CapsuleGeometry
+		| THREE.SphereGeometry
+		| THREE.CylinderGeometry = new BoxGeometry(1, 1, 1);
 	export let color: string;
 
 	$: {
@@ -231,12 +273,19 @@
 			case "Box":
 				geometry = new BoxGeometry(...(args.Box as number[]));
 				colliderArgs = (args.Box as number[]).map((i) => i / 2);
-				collider.setShape(new Cuboid(...(colliderArgs as [number, number, number])));
+				collider.setShape(
+					new Cuboid(...(colliderArgs as [number, number, number])),
+				);
 				break;
 			case "Capsule":
 				geometry = new CapsuleGeometry(...(args.Capsule as number[]));
-				colliderArgs = [((args.Capsule as number[])[1] / 2) * 1, (args.Capsule as number[])[0]];
-				collider.setShape(new Capsule(...(colliderArgs as [number, number])));
+				colliderArgs = [
+					((args.Capsule as number[])[1] / 2) * 1,
+					(args.Capsule as number[])[0],
+				];
+				collider.setShape(
+					new Capsule(...(colliderArgs as [number, number])),
+				);
 				break;
 			case "Sphere":
 				geometry = new SphereGeometry(...(args.Sphere as number[]));
@@ -245,8 +294,13 @@
 				break;
 			case "Cylinder":
 				geometry = new CylinderGeometry(...(args.Cylinder as number[]));
-				colliderArgs = [(args.Cylinder as number[])[2] / 2, (args.Cylinder as number[])[1]];
-				collider.setShape(new Cylinder(...(colliderArgs as [number, number])));
+				colliderArgs = [
+					(args.Cylinder as number[])[2] / 2,
+					(args.Cylinder as number[])[1],
+				];
+				collider.setShape(
+					new Cylinder(...(colliderArgs as [number, number])),
+				);
 				break;
 		}
 	}
@@ -258,12 +312,16 @@
 	$: {
 		if (!group) break $;
 		if (!$physicsActive) {
-			group.position.set((positionInput as number[])[0], (positionInput as number[])[1], (positionInput as number[])[2]);
+			group.position.set(
+				(positionInput as number[])[0],
+				(positionInput as number[])[1],
+				(positionInput as number[])[2],
+			);
 			group.quaternion.set(
 				(rotationInput as number[])[0],
 				(rotationInput as number[])[1],
 				(rotationInput as number[])[2],
-				(rotationInput as number[])[3]
+				(rotationInput as number[])[3],
 			);
 		}
 	}
@@ -289,9 +347,18 @@
 					...s["default"],
 					[key]: {
 						position,
-						rotation: [rotation.x, rotation.y, rotation.z, rotation.w],
+						rotation: [
+							rotation.x,
+							rotation.y,
+							rotation.z,
+							rotation.w,
+						],
 						resetOnGround,
-						initialVelocity: initialLinvel as [number, number, number],
+						initialVelocity: initialLinvel as [
+							number,
+							number,
+							number,
+						],
 						timer: time,
 						geometryType,
 						geometryArgs: args,
@@ -310,13 +377,20 @@
 			storePositionLocally
 			localStoreId={key}
 			expanded={selected || undefined}
-			theme={selected ? ThemeUtils.presets.vivid : ThemeUtils.presets.standard}
+			theme={selected
+				? ThemeUtils.presets.vivid
+				: ThemeUtils.presets.standard}
 			on:change={(e) => console.log(e)}
 		>
 			<TabGroup>
-				<TabPage title="World">
+				<TabPage title="World" disabled={$physicsActive}>
 					<Point bind:value={positionInput} label="Position" />
-					<Point bind:value={rotationInput} min={-1} max={1} label="Rotation" />
+					<Point
+						bind:value={rotationInput}
+						min={-1}
+						max={1}
+						label="Rotation"
+					/>
 					<Button
 						title="Reset rotation"
 						on:click={() => {
@@ -330,9 +404,20 @@
 					/>
 				</TabPage>
 				<TabPage title="Physics">
-					<Checkbox bind:value={resetOnGround} label="Reset on ground" />
-					<Point bind:value={initialLinvel} label="Initial velocity" />
-					<Text value={"Time: " + Math.round(time * 100) / 100 + "s"} disabled />
+					<Checkbox
+						bind:value={resetOnGround}
+						label="Reset on ground"
+						disabled={$physicsActive}
+					/>
+					<Point
+						bind:value={initialLinvel}
+						label="Initial velocity"
+						disabled={$physicsActive}
+					/>
+					<Text
+						value={"Time: " + Math.round(time * 100) / 100 + "s"}
+						disabled
+					/>
 					<Button
 						title="Reset time"
 						on:click={() => {
@@ -341,8 +426,12 @@
 						}}
 					/>
 				</TabPage>
-				<TabPage title="Material">
-					<RadioGrid label="Mesh geometry" bind:value={geometryType} values={["Box", "Capsule", "Sphere", "Cylinder"]} />
+				<TabPage title="Material" disabled={$physicsActive}>
+					<RadioGrid
+						label="Mesh geometry"
+						bind:value={geometryType}
+						values={["Box", "Capsule", "Sphere", "Cylinder"]}
+					/>
 					{#if geometryType === "Box" || geometryType === "Sphere"}
 						<Point label="Args" bind:value={args[geometryType]} />
 					{:else}
@@ -350,7 +439,7 @@
 					{/if}
 					<Color bind:value={color} label="Mesh colour" />
 				</TabPage>
-				<TabPage title="Other">
+				<TabPage title="Other" disabled={$physicsActive}>
 					<Button
 						title="Delete object"
 						on:click={() => {
@@ -387,11 +476,21 @@
 		}
 	}}
 >
-	<Collider bind:collider shape="cuboid" args={[1 / 2, 1 / 2, 1 / 2]} friction={10000} restitution={0} />
+	<Collider
+		bind:collider
+		shape="cuboid"
+		args={[1 / 2, 1 / 2, 1 / 2]}
+		friction={10000}
+		restitution={0}
+	/>
 	<slot name="physics" />
 </RigidBody>
 
 <TransformControls bind:controls on:mouseUp={mouseUp} bind:group>
 	<slot />
-	<T.Mesh {geometry} material={new MeshBasicMaterial({ color })} on:click={() => dispatch("select")} />
+	<T.Mesh
+		{geometry}
+		material={new MeshBasicMaterial({ color })}
+		on:click={() => dispatch("select")}
+	/>
 </TransformControls>

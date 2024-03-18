@@ -5,7 +5,13 @@
 	import RObject from "./RObject";
 	import { Collider, Debug, RigidBody, useRapier } from "@threlte/rapier";
 	import { Pane, Button, Point, Checkbox, Text } from "svelte-tweakpane-ui";
-	import { globalState, physicsActive, resetRotation, type Project, type KeyedItem } from "$lib/stores";
+	import {
+		globalState,
+		physicsActive,
+		resetRotation,
+		type Project,
+		type KeyedItem,
+	} from "$lib/stores";
 	import Root from "./Root.svelte";
 	import { createEventDispatcher, onMount } from "svelte";
 
@@ -25,9 +31,9 @@
 
 	const { world } = useRapier();
 
-  const dispatch = createEventDispatcher<{
-    restart: void
-  }>();
+	const dispatch = createEventDispatcher<{
+		restart: void;
+	}>();
 
 	physicsActive.subscribe((v) => {
 		// world.gravity = v ? gravity : { x: 0, y: 0, z: 0 };
@@ -57,6 +63,10 @@
 	});
 
 	function newObject() {
+		if ($globalState === null) {
+			alert("loading, please wait");
+			return;
+		}
 		const newObj = prompt("Please provide an unique id");
 		if (newObj === "gravity") {
 			alert('Object cannot be named "gravity"!');
@@ -64,7 +74,12 @@
 		}
 		if (newObj) {
 			objects = [
-				...objects,
+				...Object.entries($globalState.default)
+					.filter((o) => o[0] !== "gravity")
+					.map(([k, v]) => ({
+						key: k,
+						...(v as KeyedItem),
+					})),
 				{
 					key: newObj,
 					position: {
@@ -110,27 +125,48 @@
 {#if mounted}
 	<Root>
 		<Pane title="Rectiphysix management panel" position="fixed">
-      <Text value="Project: default" disabled />
-			<Checkbox label="Physics enabled" bind:value={dummy} on:change={(e) => physicsActive.set(e.detail.value)} />
+			<Text value="Project: default" disabled />
+			<Checkbox
+				label="Physics enabled"
+				bind:value={dummy}
+				on:change={(e) => physicsActive.set(e.detail.value)}
+			/>
 
-			<Point bind:value={gravity} label="Gravity values" />
+			<Point
+				bind:value={gravity}
+				label="Gravity values"
+				disabled={$physicsActive}
+			/>
 			<Button
 				title="Reset all rotation"
 				on:click={() => {
 					resetRotation.update((v) => !v);
 				}}
+				disabled={$physicsActive}
 			/>
 			<Button
 				title="Save"
 				on:click={() => {
 					// console.log($globalState);
-					localStorage.setItem("rectiphysix-state", JSON.stringify($globalState));
+					localStorage.setItem(
+						"rectiphysix-state",
+						JSON.stringify($globalState),
+					);
 				}}
+				disabled={$physicsActive}
 			/>
-			<Button title="Load last saved" on:click={() => {
-        dispatch("restart");
-      }} />
-			<Button title="Add object" on:click={newObject} />
+			<Button
+				title="Load last saved"
+				on:click={() => {
+					dispatch("restart");
+				}}
+				disabled={$physicsActive}
+			/>
+			<Button
+				title="Add object"
+				on:click={newObject}
+				disabled={$physicsActive}
+			/>
 		</Pane>
 	</Root>
 {/if}
@@ -160,7 +196,9 @@
 			on:select={() => (selected = obj.key)}
 			on:delete={() => {
 				objects = objects.filter((k) => k.key !== obj.key);
-				localStorage.removeItem(`svelte-tweakpane-ui-draggable-position-${obj.key}`);
+				localStorage.removeItem(
+					`svelte-tweakpane-ui-draggable-position-${obj.key}`,
+				);
 			}}
 		/>
 	{/each}
@@ -177,5 +215,10 @@
 		name: "ground",
 	}}
 >
-	<Collider shape="cuboid" args={[10, 0, 10]} friction={10000} restitution={0} />
+	<Collider
+		shape="cuboid"
+		args={[10, 0, 10]}
+		friction={10000}
+		restitution={0}
+	/>
 </RigidBody>
