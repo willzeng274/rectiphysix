@@ -2,7 +2,7 @@
 	import { T } from "@threlte/core";
 	import { Grid, interactivity, OrbitControls } from "@threlte/extras";
 	// import { TransformControls } from "@threlte/extras";
-	import RObject from "./Object";
+	import RObject from "./RObject";
 	import { Collider, Debug, RigidBody, useRapier } from "@threlte/rapier";
 	import { Pane, Button, Point, Checkbox, Text } from "svelte-tweakpane-ui";
 	import { globalState, physicsActive, resetRotation, type Project, type KeyedItem } from "$lib/stores";
