@@ -3,6 +3,8 @@
   import Scene from './Scene.svelte'
 	import { World } from '@threlte/rapier';
 	import { Sky } from '@threlte/extras';
+
+  let unique = {};
 </script>
 
 <Canvas>
@@ -16,6 +18,8 @@
     mieDirectionalG={0.7}
   />
   <World gravity={[0, 0, 0]}>
-    <Scene />
+    {#key unique}
+      <Scene on:restart={() => unique = {}} />
+    {/key}
   </World>
 </Canvas>
