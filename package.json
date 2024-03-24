@@ -29,7 +29,12 @@
     "@threlte/core": "^7.2.1",
     "@threlte/extras": "^8.10.1",
     "@threlte/rapier": "^2.0.0",
+    "bits-ui": "^0.20.0",
+    "clsx": "^2.1.0",
+    "lucide-svelte": "^0.360.0",
     "svelte-tweakpane-ui": "^1.2.2",
+    "tailwind-merge": "^2.2.2",
+    "tailwind-variants": "^0.2.1",
     "three": "^0.159.0"
   }
 }
