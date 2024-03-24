@@ -66,7 +66,10 @@
 	});
 
 	function newObject() {
-		if (!$globalState) return;
+		if ($globalState === null) {
+			alert("loading, please wait");
+			return;
+		}
 		const newObj = prompt("Please provide an unique id");
 		if (newObj === "gravity") {
 			alert('Object cannot be named "gravity"!');
@@ -162,13 +165,14 @@
 			<Text value={`Project: ${project}`} disabled />
 			<Checkbox label="Physics enabled" bind:value={dummy} on:change={(e) => physicsActive.set(e.detail.value)} />
 
-			<Point bind:value={gridSize} label="Grid helper size" />
-			<Point bind:value={gravity} label="Gravity values" />
+			<Point bind:value={gridSize} label="Grid helper size" disabled={$physicsActive} />
+			<Point bind:value={gravity} label="Gravity values" disabled={$physicsActive} />
 			<Button
 				title="Reset all rotation"
 				on:click={() => {
 					resetRotation.update((v) => !v);
 				}}
+				disabled={$physicsActive}
 			/>
 			<Button title="Save" on:click={save} />
 			<Button
@@ -176,6 +180,19 @@
 				on:click={() => {
 					dispatch("restart");
 				}}
+				disabled={$physicsActive}
+			/>
+			<Button
+				title="Load last saved"
+				on:click={() => {
+					dispatch("restart");
+				}}
+				disabled={$physicsActive}
+			/>
+			<Button
+				title="Add object"
+				on:click={newObject}
+				disabled={$physicsActive}
 			/>
 			<Button title="Add object" on:click={newObject} />
 		</Pane>
@@ -212,7 +229,9 @@
 			on:select={() => (selected = obj.key)}
 			on:delete={() => {
 				objects = objects.filter((k) => k.key !== obj.key);
-				localStorage.removeItem(`svelte-tweakpane-ui-draggable-position-${obj.key}`);
+				localStorage.removeItem(
+					`svelte-tweakpane-ui-draggable-position-${obj.key}`,
+				);
 			}}
 		/>
 	{/each}
