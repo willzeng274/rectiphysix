@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { T, useTask } from "@threlte/core";
 	import { TransformControls } from "@threlte/extras";
-	import { Collider, RigidBody, useRapier } from "@threlte/rapier";
+	import { Collider, RigidBody } from "@threlte/rapier";
 	import { TransformControls as THREETransformControls } from "three/examples/jsm/Addons.js";
 	import {
 		type RigidBody as RapierRigidBody,
@@ -12,21 +12,8 @@
 		Capsule,
 		Cylinder,
 	} from "@dimforge/rapier3d-compat";
-	import {
-		BoxGeometry,
-		CapsuleGeometry,
-		CylinderGeometry,
-		MeshBasicMaterial,
-		Quaternion,
-		SphereGeometry,
-		Vector3,
-	} from "three";
-	import {
-		globalState,
-		physicsActive,
-		resetRotation,
-		type KeyedItem,
-	} from "$lib/stores";
+	import { BoxGeometry, CapsuleGeometry, CylinderGeometry, MeshBasicMaterial, Quaternion, SphereGeometry, Vector3 } from "three";
+	import { globalState, physicsActive, resetRotation, type KeyedItem, savedState } from "$lib/stores";
 	import { createEventDispatcher, onDestroy, onMount } from "svelte";
 	import {
 		Pane,
@@ -41,6 +28,7 @@
 		TabGroup,
 		TabPage,
 		ThemeUtils,
+		Slider,
 	} from "svelte-tweakpane-ui";
 	import Root from "../Root.svelte";
 
@@ -51,6 +39,8 @@
 	export let key: string;
 
 	export let selected: boolean;
+
+	export let project: string;
 
 	let modes: Mode[] = ["translate", "rotate", "scale"];
 
@@ -135,17 +125,17 @@
 	});
 
 	let positionInput: PointValue3d = [position.x, position.y, position.z];
-	let rotationInput: PointValue4d = [
-		exportedRotation[0],
-		exportedRotation[1],
-		exportedRotation[2],
-		exportedRotation[3],
-	];
-	export let initialLinvel: PointValue3d;
+	let rotationInput: PointValue4d = [exportedRotation[0], exportedRotation[1], exportedRotation[2], exportedRotation[3]];
+	export let initialLinvel: PointValue3d = [0, 0, 0];
+	export let initialForce: PointValue3d = [0, 0, 0];
+	export let initialImpulse: PointValue3d = [0, 0, 0];
 
-	export let time: number;
+	export let time: number = 0;
 	let startTime: number = 0;
 	let timerActive: boolean = false;
+	export let additionalMass: number = 0;
+	let mass: number | undefined = undefined;
+	let originalMass: number | undefined = undefined;
 
 	useTask(() => {
 		if (!group || !rigidBody) return;
@@ -224,15 +214,39 @@
 			rigidBody.setBodyType(RigidBodyType.Dynamic, false);
 			rigidBody.resetForces(false);
 			rigidBody.resetTorques(false);
+			// console.log("Additional", additionalMass);
+			rigidBody.setAdditionalMass(additionalMass, false);
+
+			if (!originalMass) {
+				originalMass = rigidBody.mass();
+				mass = originalMass;
+			} else {
+				mass = originalMass + additionalMass;
+			}
+
+			// console.log("Mass", rigidBody.mass());
+			// mass = rigidBody.mass();
+			// console.log("applied force");
+			rigidBody.addForce({
+				x: (initialForce as number[])[0],
+				y: (initialForce as number[])[1],
+				z: (initialForce as number[])[2]
+			}, false);
 			rigidBody.setLinvel(
 				{
 					x: (initialLinvel as number[])[0],
 					y: (initialLinvel as number[])[1],
 					z: (initialLinvel as number[])[2],
 				},
-				true,
+				false
 			);
 			rigidBody.setAngvel({ x: 0, y: 0, z: 0 }, false);
+			// console.log("applied impulse", initialImpulse);
+			rigidBody.applyImpulse({
+				x: (initialImpulse as number[])[0],
+				y: (initialImpulse as number[])[1],
+				z: (initialImpulse as number[])[2]
+			}, false);
 		} else {
 			// physics just got disabled
 			// enable the transform controls back
@@ -343,22 +357,42 @@
 			if (s === null) return null;
 			return {
 				...s,
-				default: {
-					...s["default"],
+				[project]: {
+					...s[project],
 					[key]: {
 						position,
-						rotation: [
-							rotation.x,
-							rotation.y,
-							rotation.z,
-							rotation.w,
-						],
+						rotation: [rotation.x, rotation.y, rotation.z, rotation.w],
+						additionalMass,
 						resetOnGround,
-						initialVelocity: initialLinvel as [
-							number,
-							number,
-							number,
-						],
+						initialVelocity: initialLinvel as [number, number, number],
+						initialForce: initialForce as [number, number, number],
+						initialImpulse: initialImpulse as [number, number, number],
+						timer: time,
+						geometryType,
+						geometryArgs: args,
+						color,
+					} as KeyedItem,
+				},
+			};
+		});
+	}
+
+	export function saveObj() {
+		// console.log("Called save for", key);
+		savedState.update((s) => {
+			if (s === null) return null;
+			return {
+				...s,
+				[project]: {
+					...s[project],
+					[key]: {
+						position,
+						rotation: [rotation.x, rotation.y, rotation.z, rotation.w],
+						additionalMass,
+						resetOnGround,
+						initialVelocity: initialLinvel as [number, number, number],
+						initialForce: initialForce as [number, number, number],
+						initialImpulse: initialImpulse as [number, number, number],
 						timer: time,
 						geometryType,
 						geometryArgs: args,
@@ -370,6 +404,13 @@
 	}
 </script>
 
+<!-- 
+<svelte:window on:keyup={(e) => e.key === "o" && rigidBody?.applyImpulse({
+	x: initialImpulse[0],
+	y: initialImpulse[1],
+	z: initialImpulse[2]
+}, false)} /> -->
+
 {#if mounted}
 	<Root>
 		<Pane
@@ -377,10 +418,7 @@
 			storePositionLocally
 			localStoreId={key}
 			expanded={selected || undefined}
-			theme={selected
-				? ThemeUtils.presets.vivid
-				: ThemeUtils.presets.standard}
-			on:change={(e) => console.log(e)}
+			theme={selected ? ThemeUtils.presets.vivid : ThemeUtils.presets.standard}
 		>
 			<TabGroup>
 				<TabPage title="World" disabled={$physicsActive}>
@@ -404,6 +442,8 @@
 					/>
 				</TabPage>
 				<TabPage title="Physics">
+					<Text value={"Mass: " + mass} disabled />
+					<Slider bind:value={additionalMass} label="Additional Mass" disabled={$physicsActive} />
 					<Checkbox
 						bind:value={resetOnGround}
 						label="Reset on ground"
@@ -414,6 +454,8 @@
 						label="Initial velocity"
 						disabled={$physicsActive}
 					/>
+					<Point bind:value={initialForce} label="Constant force (CM)" disabled={$physicsActive} />
+					<Point bind:value={initialImpulse} label="Initial impulse" disabled={$physicsActive} />
 					<Text
 						value={"Time: " + Math.round(time * 100) / 100 + "s"}
 						disabled
@@ -476,21 +518,13 @@
 		}
 	}}
 >
-	<Collider
-		bind:collider
-		shape="cuboid"
-		args={[1 / 2, 1 / 2, 1 / 2]}
-		friction={10000}
-		restitution={0}
-	/>
+	<Collider bind:collider shape="cuboid" args={[1 / 2, 1 / 2, 1 / 2]} friction={0} restitution={0} />
 	<slot name="physics" />
 </RigidBody>
 
 <TransformControls bind:controls on:mouseUp={mouseUp} bind:group>
+<!-- <T.Group bind:ref={group}> -->
 	<slot />
-	<T.Mesh
-		{geometry}
-		material={new MeshBasicMaterial({ color })}
-		on:click={() => dispatch("select")}
-	/>
+	<T.Mesh {geometry} material={new MeshBasicMaterial({ color })} on:click={() => dispatch("select")} />
+<!-- </T.Group> -->
 </TransformControls>

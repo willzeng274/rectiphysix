@@ -1,21 +1,25 @@
 <script lang="ts">
 	import { T } from "@threlte/core";
-	import { Grid, interactivity, OrbitControls } from "@threlte/extras";
+	import { Gizmo, Grid, interactivity, OrbitControls } from "@threlte/extras";
 	// import { TransformControls } from "@threlte/extras";
 	import RObject from "./RObject";
 	import { Collider, Debug, RigidBody, useRapier } from "@threlte/rapier";
-	import { Pane, Button, Point, Checkbox, Text } from "svelte-tweakpane-ui";
-	import {
-		globalState,
-		physicsActive,
-		resetRotation,
-		type Project,
-		type KeyedItem,
-	} from "$lib/stores";
+	import { Pane, Button, Point, Checkbox, Text, type PointValue2d } from "svelte-tweakpane-ui";
+	import { globalState, physicsActive, resetRotation, type Project, type KeyedItem, savedState } from "$lib/stores";
 	import Root from "./Root.svelte";
-	import { createEventDispatcher, onMount } from "svelte";
+	import { createEventDispatcher, onDestroy, onMount, SvelteComponent } from "svelte";
+
+	export let project: string;
+
+	$: {
+		if (project) {
+			objects = [];
+			selected = "";
+		}
+	}
 
 	let objects: (KeyedItem & { key: string })[] = [];
+	let objectComponents: SvelteComponent[] = [];
 	let selected = "";
 
 	// default value
@@ -45,21 +49,20 @@
 	});
 
 	onMount(() => {
-		const saved = localStorage.getItem("rectiphysix-state");
-		if (saved) {
-			const obj = JSON.parse(saved);
-			globalState.set(obj);
-			gravity = obj.default.gravity;
-			objects = Object.entries(obj.default)
-				.filter((o) => o[0] !== "gravity")
-				.map(([k, v]) => ({
-					key: k,
-					...(v as KeyedItem),
-				}));
-		} else {
-			globalState.set({});
-		}
 		mounted = true;
+		// this shouldn't be possible
+		if (!$globalState) return;
+		gravity = $globalState[project].gravity;
+		objects = Object.entries($globalState[project])
+			.filter((o) => o[0] !== "gravity" && o[0] !== "position")
+			.map(([k, v]) => ({
+				key: k,
+				...(v as KeyedItem),
+			}));
+	});
+
+	onDestroy(() => {
+		objectComponents = [];
 	});
 
 	function newObject() {
@@ -74,8 +77,8 @@
 		}
 		if (newObj) {
 			objects = [
-				...Object.entries($globalState.default)
-					.filter((o) => o[0] !== "gravity")
+				...Object.entries($globalState[project])
+					.filter((o) => o[0] !== "gravity" && o[0] !== "position")
 					.map(([k, v]) => ({
 						key: k,
 						...(v as KeyedItem),
@@ -88,8 +91,11 @@
 						z: 0,
 					},
 					rotation: [0, 0, 0, 1],
+					additionalMass: 0,
 					resetOnGround: false,
 					initialVelocity: [0, 0, 0],
+					initialForce: [0, 0, 0],
+					initialImpulse: [0, 0, 0],
 					timer: 0,
 					geometryType: "Box",
 					geometryArgs: {
@@ -104,20 +110,51 @@
 		}
 	}
 
+	function save() {
+		objectComponents.forEach((o) => {
+			o.saveObj();
+		});
+		savedState.update((s) => {
+			if (s === null) return null;
+			const newState = {
+				...s,
+				[project]: {
+					...s[project],
+					gravity,
+				} as Project,
+			};
+			return newState;
+		});
+	}
+
 	$: {
+		// console.log(project);
 		globalState.update((s) => {
 			if (s === null) return null;
+			// console.log({
+			// 	...s,
+			// 	[project]: {
+			// 		...s[project],
+			// 		gravity,
+			// 	} as Project,
+			// });
 			return {
 				...s,
-				default: {
-					...s["default"],
+				[project]: {
+					...s[project],
 					gravity,
 				} as Project,
 			};
 		});
 	}
 
+	$: {
+		if (mounted) localStorage.setItem("rectiphysix-state", JSON.stringify($savedState));
+	}
+
 	let dummy: boolean = false;
+
+	let gridSize: PointValue2d & [number, number] = [20, 20];
 </script>
 
 <svelte:window on:keydown={(e) => e.key === "Escape" && (selected = "")} />
@@ -125,18 +162,11 @@
 {#if mounted}
 	<Root>
 		<Pane title="Rectiphysix management panel" position="fixed">
-			<Text value="Project: default" disabled />
-			<Checkbox
-				label="Physics enabled"
-				bind:value={dummy}
-				on:change={(e) => physicsActive.set(e.detail.value)}
-			/>
+			<Text value={`Project: ${project}`} disabled />
+			<Checkbox label="Physics enabled" bind:value={dummy} on:change={(e) => physicsActive.set(e.detail.value)} />
 
-			<Point
-				bind:value={gravity}
-				label="Gravity values"
-				disabled={$physicsActive}
-			/>
+			<Point bind:value={gridSize} label="Grid helper size" disabled={$physicsActive} />
+			<Point bind:value={gravity} label="Gravity values" disabled={$physicsActive} />
 			<Button
 				title="Reset all rotation"
 				on:click={() => {
@@ -144,14 +174,11 @@
 				}}
 				disabled={$physicsActive}
 			/>
+			<Button title="Save" on:click={save} />
 			<Button
-				title="Save"
+				title="Load last saved"
 				on:click={() => {
-					// console.log($globalState);
-					localStorage.setItem(
-						"rectiphysix-state",
-						JSON.stringify($globalState),
-					);
+					dispatch("restart");
 				}}
 				disabled={$physicsActive}
 			/>
@@ -167,6 +194,7 @@
 				on:click={newObject}
 				disabled={$physicsActive}
 			/>
+			<Button title="Add object" on:click={newObject} />
 		</Pane>
 	</Root>
 {/if}
@@ -179,11 +207,13 @@
 
 <!-- Loaded from localstorage -->
 {#if $globalState !== null}
-	{#each objects as obj (obj.key)}
+	{#each objects as obj, ind (obj.key)}
 		<RObject.View
+			bind:this={objectComponents[ind]}
 			key={obj.key}
 			initialLinvel={obj.initialVelocity}
 			time={obj.timer}
+			additionalMass={obj.additionalMass}
 			resetOnGround={obj.resetOnGround}
 			color={obj.color}
 			positionX={obj.position.x}
@@ -193,6 +223,9 @@
 			geometryType={obj.geometryType}
 			args={obj.geometryArgs}
 			selected={selected === obj.key}
+			initialForce={obj.initialForce}
+			initialImpulse={obj.initialImpulse}
+			{project}
 			on:select={() => (selected = obj.key)}
 			on:delete={() => {
 				objects = objects.filter((k) => k.key !== obj.key);
@@ -207,18 +240,16 @@
 <!-- Debug -->
 <Debug />
 
+<T.AxesHelper position={[0, 0.01, 0]} args={[3]} renderOrder={1} />
+<Gizmo />
+
 <!-- Ground -->
-<Grid cellColor="white" sectionColor="white" />
+<Grid {gridSize} cellColor="white" sectionColor="white" sectionSize={10} />
 <RigidBody
 	type="fixed"
 	userData={{
 		name: "ground",
 	}}
 >
-	<Collider
-		shape="cuboid"
-		args={[10, 0, 10]}
-		friction={10000}
-		restitution={0}
-	/>
+	<Collider shape="cuboid" args={[10, 0, 10]} friction={0} restitution={0} />
 </RigidBody>

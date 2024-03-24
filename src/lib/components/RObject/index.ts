@@ -3,5 +3,5 @@ import Physics from "./Physics.svelte";
 
 export default {
     View,
-    Physics
+    Physics,
 };
