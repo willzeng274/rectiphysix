@@ -183,18 +183,10 @@
 				disabled={$physicsActive}
 			/>
 			<Button
-				title="Load last saved"
-				on:click={() => {
-					dispatch("restart");
-				}}
-				disabled={$physicsActive}
-			/>
-			<Button
 				title="Add object"
 				on:click={newObject}
 				disabled={$physicsActive}
 			/>
-			<Button title="Add object" on:click={newObject} />
 		</Pane>
 	</Root>
 {/if}

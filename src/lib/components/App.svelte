@@ -23,8 +23,8 @@
 		if (title) {
 			projects = [...projects, title];
 			// don't need to update globalState because any operations within the project will create the project object
-      // but because of the deepEqual we have to do it
-      globalState.update((s) => {
+			// but because of the deepEqual we have to do it
+			globalState.update((s) => {
 				if (s === null) return null;
 				return {
 					...s,
@@ -57,7 +57,7 @@
 
 	function removeProject(proj: string) {
 		projects = projects.filter((p) => p !== proj);
-    globalState.update((s) => {
+		globalState.update((s) => {
 			if (s === null) return null;
 			const { [proj]: _, ...res } = s;
 			return {
@@ -121,7 +121,7 @@
 		newList[from] = [newList[to], (newList[to] = newList[from])][0];
 		// console.log("Reorder", projects, newList, from, to);
 		projects = newList;
-    globalState.update((s) => {
+		globalState.update((s) => {
 			if (s === null) return null;
 			return {
 				...s,
@@ -200,10 +200,8 @@
 </script>
 
 <svelte:window
-	on:beforeunload={(e) => changes && [
-		e.preventDefault(),
-		(e.returnValue = "Are you sure you want to leave? Some changes may not be saved."),
-	]}
+	on:beforeunload={(e) =>
+		changes && [e.preventDefault(), (e.returnValue = "Are you sure you want to leave? Some changes may not be saved.")]}
 />
 
 <Sheet.Root>
@@ -279,6 +277,8 @@
 			{/key}
 		</World>
 	</Canvas>
+{:else}
+<p class="text-white fixed top-[50%] left-[50%] -translate-x-1/2 -translate-y-1/2">Loading rectiphysix...</p>
 {/if}
 
 <style lang="postcss">
